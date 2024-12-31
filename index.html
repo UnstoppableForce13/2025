@@ -3,119 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Christmas Experience</title>
-    <meta name="description" content="The best online Christmas experience. Explore interactive 3D elements, countdowns, and virtual events worldwide!">
-    <meta name="keywords" content="Christmas, Christmas Countdown, Christmas 3D, Virtual Christmas Events, Augmented Reality Christmas">
+    <title>Ultimate Catch the Box Game</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-        #canvas { display: block; }
-        #greeting { text-align: center; font-size: 24px; margin-top: 20px; }
-        #map { width: 100%; height: 400px; }
-        .social-media { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
-        .social-media a img { width: 30px; height: 30px; }
-        .quiz-container { text-align: center; margin-top: 40px; }
-        #quiz { font-size: 18px; }
+        body {
+            background-color: #1a1a1a;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            color: white;
+        }
+
+        .game-container {
+            position: relative;
+            width: 500px;
+            height: 700px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 5px solid #ff5722;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .box {
+            border-radius: 5px;
+            transition: transform 0.1s ease-in-out;
+        }
+
+        #player {
+            background-color: #76ff03;
+            bottom: 10px;
+        }
+
+        #falling-object {
+            background-color: #03a9f4;
+            top: 0;
+        }
+
+        #power-up {
+            width: 40px;
+            height: 40px;
+            background-color: #ffeb3b;
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            display: none;
+        }
+
+        #obstacle {
+            width: 50px;
+            height: 50px;
+            background-color: #9c27b0;
+            position: absolute;
+            top: 0;
+            display: none;
+        }
+
+        #score, #high-score, #timer {
+            position: absolute;
+            top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        #score {
+            left: 20px;
+        }
+
+        #high-score {
+            left: 20px;
+            top: 50px;
+        }
+
+        #timer {
+            right: 20px;
+            top: 20px;
+        }
+
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 30px;
+            color: white;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            color: white;
+            background-color: #ff5722;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:hover {
+            background-color: #e64a19;
+        }
     </style>
 </head>
 <body>
-    <!-- 3D Christmas Tree -->
-    <canvas id="canvas"></canvas>
-
-    <h1 id="greeting">Merry Christmas!</h1>
-
-    <!-- Map for Real-Time Events -->
-    <div id="map"></div>
-
-    <!-- Social Media Sharing -->
-    <div class="social-media">
-        <a href="https://twitter.com/intent/tweet?text=Merry%20Christmas!" target="_blank">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/Twitter_logo_2012.svg" alt="Share on Twitter" />
-        </a>
-        <a href="https://www.facebook.com/sharer/sharer.php?u=YOUR_WEBSITE_URL" target="_blank">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="Share on Facebook" />
-        </a>
+    <div class="game-container">
+        <div id="player" class="box"></div>
+        <div id="falling-object" class="box"></div>
+        <div id="score">Score: 0</div>
+        <div id="high-score">High Score: 0</div>
+        <div id="timer">Time: 30s</div>
+        <div id="power-up"></div>
+        <div id="obstacle"></div>
+        <div id="game-over" class="hidden">
+            <p>Game Over!</p>
+            <button onclick="restartGame()">Restart</button>
+        </div>
     </div>
 
-    <!-- Christmas Quiz -->
-    <div class="quiz-container">
-        <form id="quiz">
-            <h3>Christmas Quiz!</h3>
-            <p>Question 1: What color is Santa's suit?</p>
-            <input type="radio" name="q1" value="red"> Red
-            <input type="radio" name="q1" value="green"> Green
-            <input type="radio" name="q1" value="blue"> Blue
-            <br>
-            <button type="submit">Submit Answer</button>
-        </form>
-    </div>
-
-    <!-- Include Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/AR.js/aframe/build/aframe-ar.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
+    <audio id="background-music" loop autoplay>
+        <source src="background-music.mp3" type="audio/mp3">
+    </audio>
+    <audio id="catch-sound" src="catch.mp3"></audio>
+    <audio id="gameover-sound" src="gameover.mp3"></audio>
 
     <script>
-        // 3D Christmas Tree Setup
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas') });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        // Get DOM elements
+        let gameContainer = document.querySelector('.game-container');
+        let player = document.getElementById('player');
+        let fallingObject = document.getElementById('falling-object');
+        let scoreDisplay = document.getElementById('score');
+        let highScoreDisplay = document.getElementById('high-score');
+        let timerDisplay = document.getElementById('timer');
+        let gameOverScreen = document.getElementById('game-over');
+        let powerUp = document.getElementById('power-up');
+        let obstacle = document.getElementById('obstacle');
+        let catchSound = document.getElementById('catch-sound');
+        let gameOverSound = document.getElementById('gameover-sound');
 
-        const geometry = new THREE.ConeGeometry(5, 15, 4);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        const tree = new THREE.Mesh(geometry, material);
-        scene.add(tree);
+        // Game state variables
+        let playerPosition = 175;
+        let fallingObjectPosition = 0;
+        let fallingSpeed = 2;
+        let score = 0;
+        let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
+        let level = 1;
+        let isPowerUpActive = false;
+        let powerUpPosition = 0;
+        let obstaclePosition = 0;
+        let timer = 30;
+        let gameInterval;
+        let isGameRunning = false;
 
-        camera.position.z = 20;
-
-        function animate() {
-            requestAnimationFrame(animate);
-            tree.rotation.x += 0.01;
-            tree.rotation.y += 0.01;
-            renderer.render(scene, camera);
+        // Update UI with score and high score
+        function updateScores() {
+            scoreDisplay.textContent = `Score: ${score}`;
+            highScoreDisplay.textContent = `High Score: ${highScore}`;
         }
 
-        animate();
-
-        // Real-Time Event Mapping (Google Maps)
-        let map;
-        function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: 0, lng: 0 },
-                zoom: 2
-            });
+        // Timer countdown
+        function startTimer() {
+            let timerInterval = setInterval(() => {
+                if (timer > 0) {
+                    timer--;
+                    timerDisplay.textContent = `Time: ${timer}s`;
+                } else {
+                    clearInterval(timerInterval);
+                    gameOver();
+                }
+            }, 1000);
         }
 
-        // Add markers for events (replace with actual data)
-        function addEventMarker(lat, lng, eventName) {
-            new google.maps.Marker({
-                position: { lat: lat, lng: lng },
-                map: map,
-                title: eventName
-            });
+        // Spawn power-up randomly
+        function spawnPowerUp() {
+            powerUpPosition = Math.random() * (gameContainer.offsetWidth - powerUp.offsetWidth);
+            powerUp.style.left = powerUpPosition + 'px';
+            powerUp.style.display = 'block';
         }
 
-        // Personalized Greeting (Geolocation)
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const greeting = `Merry Christmas from ${lat.toFixed(2)}, ${lon.toFixed(2)}!`;
-            document.getElementById("greeting").innerText = greeting;
+        // Activate power-up (Speed boost)
+        function activatePowerUp() {
+            if (fallingObjectPosition + fallingObject.offsetHeight >= gameContainer.offsetHeight - player.offsetHeight &&
+                fallingObjectPosition + fallingObject.offsetHeight <= gameContainer.offsetHeight &&
+                playerPosition < powerUp.offsetLeft + powerUp.offsetWidth &&
+                playerPosition + player.offsetWidth > powerUp.offsetLeft) {
+                isPowerUpActive = true;
+                fallingSpeed *= 1.5;  // Increase speed temporarily
+                powerUp.style.display = 'none';
+                setTimeout(() => {
+                    isPowerUpActive = false;
+                    fallingSpeed /= 1.5; // Reset speed
+                }, 5000);
+            }
+        }
+
+        // Spawn obstacle randomly
+        function spawnObstacle() {
+            obstaclePosition = Math.random() * (gameContainer.offsetWidth - obstacle.offsetWidth);
+            obstacle.style.left = obstaclePosition + 'px';
+            obstacle.style.display = 'block';
+        }
+
+        // Check collision with obstacle
+        function checkForCollision() {
+            if (obstaclePosition + obstacle.offsetHeight >= gameContainer.offsetHeight - player.offsetHeight &&
+                obstaclePosition + obstacle.offsetHeight <= gameContainer.offsetHeight &&
+                playerPosition < obstacle.offsetLeft + obstacle.offsetWidth &&
+                playerPosition + player.offsetWidth > obstacle.offsetLeft) {
+                gameOver();
+            }
+        }
+
+        // Game Over logic
+        function gameOver() {
+            clearInterval(gameInterval);
+            gameOverScreen.classList.remove('hidden');
+            isGameRunning = false;
+            updateHighScore();
+            gameOverSound.play();
+        }
+
+        // Update high score in localStorage
+        function updateHighScore() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+            }
+            updateScores();
+        }
+
+        // Restart game logic
+        function restartGame() {
+            score = 0;
+            timer = 30;
+            fallingSpeed = 2;
+            playerPosition = 175;
+            fallingObjectPosition = 0;
+            gameOverScreen.classList.add('hidden');
+            isGameRunning = true;
+            startGame();
+        }
+
+        // Start the game loop
+        function startGame() {
+            updateScores();
+            startTimer();
+            gameInterval = setInterval(() => {
+                if (isGameRunning) {
+                    fallingObjectPosition += fallingSpeed;
+                    fallingObject.style.top = fallingObjectPosition + 'px';
+
+                    if (fallingObjectPosition + fallingObject.offsetHeight >= gameContainer.offsetHeight - player.offsetHeight &&
+                        fallingObjectPosition + fallingObject.offsetHeight <= gameContainer.offsetHeight &&
+                        playerPosition < fallingObject.offsetLeft + fallingObject.offsetWidth &&
+                        playerPosition + player.offsetWidth > fallingObject.offsetLeft) {
+                        fallingObjectPosition = 0;
+                        fallingObject.style.left = Math.random() * (gameContainer.offsetWidth - fallingObject.offsetWidth) + 'px';
+                        score++;
+                        updateScores();
+                        fallingSpeed += 0.1;
+                        catchSound.play();
+                    }
+
+                    if (fallingObjectPosition > gameContainer.offsetHeight) {
+                        gameOver();
+                    }
+
+                    // Handle power-up and obstacle
+                    if (Math.random() < 0.01) spawnPowerUp();
+                    activatePowerUp();
+
+                    if (Math.random() < 0.005) spawnObstacle();
+                    obstaclePosition += fallingSpeed / 2;
+                    obstacle.style.top = obstaclePosition + 'px';
+                    checkForCollision();
+                }
+            }, 1000 / 60);
+        }
+
+        // Handle player movement with arrow keys
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && playerPosition > 0) {
+                playerPosition -= 10;
+                player.style.left = playerPosition + 'px';
+            } else if (e.key === 'ArrowRight' && playerPosition < gameContainer.offsetWidth - player.offsetWidth) {
+                playerPosition += 10;
+                player.style.left = playerPosition + 'px';
+            }
         });
 
-        // Christmas Quiz Logic
-        document.getElementById('quiz').onsubmit = function(event) {
-            event.preventDefault();
-            const answer = document.querySelector('input[name="q1"]:checked').value;
-            if (answer === "red") {
-                alert("Correct! Santa wears a red suit.");
-            } else {
-                alert("Oops! Try again.");
-            }
-        };
+        startGame();
     </script>
 </body>
 </html>
-
